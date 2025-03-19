@@ -1,0 +1,16 @@
+# The registry. Hand-edited, reviewed like any other config.
+# `promptlock lock` turns this plus the prompt text into promptlock.lock.
+
+[prompt.support_triage]
+path = "prompts/support_triage.md"
+owner = "platform"
+tuned_against = "gpt-4o-mini"
+variables = ["customer_name", "ticket_body"]
+
+[prompt.summarise_thread]
+path = "prompts/summarise_thread.md"
+owner = "platform"
+tuned_against = "llama-3.1-8b-instruct"
+variables = ["thread"]
+optional = ["max_words"]
+notes = "Used by the digest job. Tone is deliberately flat."
