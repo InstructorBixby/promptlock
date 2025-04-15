@@ -1,0 +1,27 @@
+# Runs on the docker runner registered on this box.
+stages:
+  - test
+
+test:
+  stage: test
+  image: python:$PYVER
+  parallel:
+    matrix:
+      - PYVER: ["3.11", "3.12"]
+  script:
+    - pip install uv
+    - uv pip install --system -e ".[dev]"
+    - ruff check .
+    - pytest -q
+
+# This repository keeps its own example prompts in a registry, so the
+# gate can be run against itself.
+selfcheck:
+  stage: selfcheck
+  image: python:3.12
+  script:
+    - pip install uv
+    - uv pip install --system -e "."
+    - promptlock verify
+    - promptlock check
+    - promptlock fmt --check
