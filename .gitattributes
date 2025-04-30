@@ -1,0 +1,5 @@
+# The canonical form deliberately does not fold line endings, so a
+# checkout that translates them would change every hash. Pin it.
+*.md text eol=lf
+*.txt text eol=lf
+promptlock.lock text eol=lf
