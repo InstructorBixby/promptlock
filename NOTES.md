@@ -27,9 +27,33 @@ file is not the text the model sees, which defeats the entire point of
 hashing the file.
 
 So: `{{name}}` is a placeholder, a single brace is literal text, and
-anything else is left alone. The cost is that a prompt which itself
-contains `{{` -- a prompt teaching a model to emit templates, say --
-needs an escape. That is a smaller and rarer problem than JSON.
+anything else is left alone.
+
+## the escape, and why it had to exist
+
+A prompt arrived whose job was to teach a model to fill in templates.
+It contained, inside a fenced block, an example template with
+`{{customer_name}}` in it. `check` reported an undeclared variable, the
+owner declared it to make the check pass, and `render` then substituted
+the example -- so the model was being taught to produce a template with
+a real customer's name baked into it instead of a placeholder.
+
+That is a silent correctness bug in exactly the class this tool exists
+to prevent, and the parser caused it. Two options:
+
+1. A raw region marker. Rejected: it is a template language again, and
+   the marker is text the model would see unless I strip it, and
+   stripping it means the hashed text is not the rendered text.
+2. Doubling, as `str.format` does. `{{{{name}}}}` renders as the literal
+   `{{name}}`.
+
+Doubling wins because it needs no new syntax in the output, it is the
+convention people already know from `str.format`, and it degrades
+legibly: if you forget it, `check` tells you about an undeclared
+variable and the fix is four characters.
+
+It is still ugly in the file, which is the honest cost of having only
+one kind of brace to work with.
 
 ## what is deliberately not here
 
