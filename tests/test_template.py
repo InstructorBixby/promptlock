@@ -26,8 +26,7 @@ def test_renders():
 
 
 def test_renders_a_repeated_placeholder_everywhere():
-    out = template.render("{{x}}-{{x}}", {"x": "7"})
-    assert out == "7-7"
+    assert template.render("{{x}}-{{x}}", {"x": "7"}) == "7-7"
 
 
 def test_missing_is_an_error():
@@ -43,7 +42,40 @@ def test_unknown_is_an_error():
 
 
 def test_a_substituted_value_is_not_re_scanned():
-    # Otherwise a value containing a placeholder is an injection into
-    # the template itself.
-    out = template.render("{{a}}", {"a": "{{b}}"})
-    assert out == "{{b}}"
+    assert template.render("{{a}}", {"a": "{{b}}"}) == "{{b}}"
+
+
+# --- the escape -----------------------------------------------------
+
+def test_escaped_placeholder_is_not_a_variable():
+    assert template.variables("example: {{{{name}}}}") == []
+
+
+def test_escaped_placeholder_renders_as_literal_braces():
+    out = template.render("example: {{{{name}}}}", {})
+    assert out == "example: {{name}}"
+
+
+def test_escaped_and_real_in_one_template():
+    text = "Fill {{{{slot}}}} using {{value}}"
+    assert template.variables(text) == ["value"]
+    assert template.render(text, {"value": "7"}) == "Fill {{slot}} using 7"
+
+
+# --- suspicious shapes ----------------------------------------------
+
+def test_unclosed_placeholder_is_suspicious():
+    assert template.suspicious("hi {{who\n") == ["{{who"]
+
+
+def test_hyphenated_name_is_suspicious_not_a_variable():
+    assert template.variables("{{first-name}}") == []
+    assert template.suspicious("{{first-name}}") == ["{{first-name}}"]
+
+
+def test_a_real_placeholder_is_not_suspicious():
+    assert template.suspicious("{{who}}") == []
+
+
+def test_an_escaped_placeholder_is_not_suspicious():
+    assert template.suspicious("{{{{who}}}}") == []
