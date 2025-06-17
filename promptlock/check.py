@@ -40,10 +40,14 @@ def check(reg: registry.Registry) -> list[Problem]:
                 out.append(Problem(entry.id, "unused",
                                    f"declared {name}, no placeholder "
                                    f"in the text"))
-        both = set(entry.variables) & set(entry.optional)
-        for name in sorted(both):
+        for name in sorted(set(entry.variables) & set(entry.optional)):
             out.append(Problem(entry.id, "contradictory",
                                f"{name} is both required and optional"))
+        for frag in template.suspicious(text):
+            out.append(Problem(entry.id, "suspicious",
+                               f"{frag!r} looks like a placeholder and "
+                               f"will not be substituted; escape it as "
+                               f"{{{{{{{{...}}}}}}}} if it is literal"))
         if not entry.owner:
             out.append(Problem(entry.id, "no-owner",
                                "no owner; nobody to ask about a change"))

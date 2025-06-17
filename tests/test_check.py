@@ -38,3 +38,13 @@ def test_missing_owner(tmp_path):
     toml = '[prompt.a]\npath = "a.md"\nvariables = ["x"]\n'
     reg = build(tmp_path, toml, "hi {{x}}\n")
     assert any(p.kind == "no-owner" for p in check.check(reg))
+
+
+def test_suspicious_shape_is_reported(tmp_path):
+    reg = build(tmp_path, GOOD, "hi {{x}} and {{first-name}}\n")
+    assert any(p.kind == "suspicious" for p in check.check(reg))
+
+
+def test_an_escaped_literal_is_clean(tmp_path):
+    reg = build(tmp_path, GOOD, "hi {{x}}, fill in {{{{slot}}}}\n")
+    assert check.check(reg) == []
