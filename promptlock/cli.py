@@ -13,7 +13,7 @@ import argparse
 import json
 import sys
 
-from promptlock import canon, check, lockfile, registry, template
+from promptlock import canon, check, lockfile, registry, render, template
 
 
 def _pins(reg: registry.Registry) -> list[lockfile.Pin]:
@@ -26,6 +26,17 @@ def _pins(reg: registry.Registry) -> list[lockfile.Pin]:
             variables=tuple(entry.variables),
             optional=tuple(entry.optional)))
     return pins
+
+
+def _values(args) -> dict:
+    values = {}
+    if args.vars:
+        with open(args.vars, encoding="utf-8") as fh:
+            values = json.load(fh)
+    for item in args.set or []:
+        k, _, v = item.partition("=")
+        values[k] = v
+    return values
 
 
 def cmd_lock(args) -> int:
@@ -83,15 +94,13 @@ def cmd_render(args) -> int:
     if args.id not in reg.entries:
         print(f"promptlock: no prompt {args.id!r}", file=sys.stderr)
         return 2
-    values = {}
-    if args.vars:
-        values = json.loads(open(args.vars, encoding="utf-8").read())
-    for item in args.set or []:
-        k, _, v = item.partition("=")
-        values[k] = v
     text = reg.read(reg.entries[args.id])
     try:
-        sys.stdout.write(template.render(text, values))
+        if args.hash:
+            print(json.dumps(render.hashes(text, _values(args)),
+                             indent=1, sort_keys=True))
+        else:
+            sys.stdout.write(template.render(text, _values(args)))
     except template.TemplateError as exc:
         print(f"promptlock: {args.id}: {exc}", file=sys.stderr)
         return 2
@@ -125,6 +134,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("id")
     p.add_argument("--vars", help="JSON file of variable values")
     p.add_argument("--set", action="append", metavar="K=V")
+    p.add_argument("--hash", action="store_true",
+                   help="print the template, variables and render "
+                        "hashes instead of the text")
     p.set_defaults(fn=cmd_render)
 
     p = sub.add_parser("hash", help="hash files, ignoring the registry")
