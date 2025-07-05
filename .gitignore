@@ -4,3 +4,7 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
+
+# .promptlock/objects is deliberately NOT ignored: the pinned texts are
+# the point. Only the cache under it is disposable.
+.promptlock/cache/
