@@ -13,19 +13,12 @@ import argparse
 import json
 import sys
 
-from promptlock import canon, check, lockfile, registry, render, template
+from promptlock import (canon, check, lockfile, project, registry,
+                        render, store, template)
 
 
-def _pins(reg: registry.Registry) -> list[lockfile.Pin]:
-    pins = []
-    for entry in reg:
-        text = reg.read(entry)
-        pins.append(lockfile.Pin(
-            id=entry.id, path=entry.path, hash=canon.digest(text),
-            owner=entry.owner, tuned_against=entry.tuned_against,
-            variables=tuple(entry.variables),
-            optional=tuple(entry.optional)))
-    return pins
+def _open(args) -> project.Project:
+    return project.Project.open(args.registry, args.lock)
 
 
 def _values(args) -> dict:
@@ -40,20 +33,19 @@ def _values(args) -> dict:
 
 
 def cmd_lock(args) -> int:
-    reg = registry.load(args.registry)
-    pins = _pins(reg)
-    lockfile.write(args.lock, pins)
-    for entry in reg:
-        for note in canon.lossy(reg.read(entry)):
+    proj = _open(args)
+    pins = proj.lock()
+    for entry in proj.registry:
+        for note in canon.lossy(proj.registry.read(entry)):
             print(f"{entry.id}: note: {note}", file=sys.stderr)
     print(f"locked {len(pins)} prompt(s) -> {args.lock}")
     return 0
 
 
 def cmd_verify(args) -> int:
-    reg = registry.load(args.registry)
-    pinned = {p.id: p for p in lockfile.read(args.lock)}
-    current = {p.id: p for p in _pins(reg)}
+    proj = _open(args)
+    pinned = proj.pinned()
+    current = {p.id: p for p in proj.current()}
 
     drift = 0
     for pid in sorted(set(pinned) | set(current)):
@@ -149,7 +141,8 @@ def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
     try:
         return args.fn(args)
-    except (registry.RegistryError, lockfile.LockError) as exc:
+    except (registry.RegistryError, lockfile.LockError,
+            store.StoreError) as exc:
         print(f"promptlock: {exc}", file=sys.stderr)
         return 2
 
