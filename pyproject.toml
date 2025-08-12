@@ -15,7 +15,7 @@ dependencies = []
 [project.optional-dependencies]
 dev = ["pytest", "ruff"]
 [project.scripts]
-promptlock = "promptlock.cli:main"
+promptlock = "promptlock.commands.main:main"
 
 [tool.setuptools.packages.find]
 include = ["promptlock*"]
