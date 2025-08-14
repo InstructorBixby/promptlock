@@ -1,4 +1,4 @@
-from promptlock.cli import main
+from promptlock.commands.main import main
 
 
 def test_render_with_set(project, capsys):
@@ -6,7 +6,7 @@ def test_render_with_set(project, capsys):
     assert "card declined" in capsys.readouterr().out
 
 
-def test_render_with_a_vars_file(project, capsys, tmp_path):
+def test_render_with_a_vars_file(project, capsys):
     (project / "vars.json").write_text('{"ticket": "no access"}',
                                        encoding="utf-8")
     assert main(["render", "triage", "--vars", "vars.json"]) == 0
@@ -28,7 +28,7 @@ def test_render_unknown_id_is_exit_2(project):
     assert main(["render", "nope"]) == 2
 
 
-def test_check_is_clean_on_the_fixture(project, capsys):
+def test_check_is_clean_on_the_fixture(project):
     assert main(["check"]) == 0
 
 

@@ -1,4 +1,4 @@
-from promptlock.cli import main
+from promptlock.commands.main import main
 
 
 def test_lock_then_verify_is_clean(project, capsys):

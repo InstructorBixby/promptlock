@@ -1,6 +1,6 @@
 import json
 
-from promptlock.cli import main
+from promptlock.commands.main import main
 
 
 def test_render_hash_prints_three_hashes(project, capsys):
