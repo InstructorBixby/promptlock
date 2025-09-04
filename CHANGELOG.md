@@ -2,6 +2,25 @@
 
 Keep a Changelog format, semver versions.
 
+## [0.3.0]
+
+### Added
+- `promptlock render --hash` prints three hashes: template,
+  variables and rendered output. A variable change moves the
+  render hash while the template hash sits still, which is the
+  common case nobody notices.
+- Content-addressed store under `.promptlock/objects` holding every
+  pinned text, so a diff does not depend on git history.
+- `promptlock diff`, word level, with whitespace-only changes
+  reported as their own outcome rather than mixed in with real
+  edits.
+
+### Changed
+- Subcommands moved to `promptlock.commands.*`; the console script
+  entry point is now `promptlock.commands.main:main`.
+- The store keeps the *raw* text under the *canonical* hash, and
+  refuses to overwrite an object whose raw bytes differ.
+
 ## [0.2.0]
 
 ### Added
