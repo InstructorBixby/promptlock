@@ -3,7 +3,7 @@
 Exit codes, because the only interesting caller is CI:
 
   0  everything matched
-  1  drift, or a failed check
+  1  drift, a failed check, or a stale eval binding
   2  usage or configuration error
 """
 from __future__ import annotations
@@ -11,14 +11,17 @@ from __future__ import annotations
 import argparse
 import sys
 
+from promptlock import evals as evals_mod
 from promptlock import lockfile, registry, store
 from promptlock.commands import diff as diff_cmd
+from promptlock.commands import evals as evals_cmd
 from promptlock.commands import hash as hash_cmd
 from promptlock.commands import lock as lock_cmd
 from promptlock.commands import render as render_cmd
 from promptlock.commands import verify as verify_cmd
 
-MODULES = (lock_cmd, verify_cmd, diff_cmd, render_cmd, hash_cmd)
+MODULES = (lock_cmd, verify_cmd, diff_cmd, render_cmd, evals_cmd,
+           hash_cmd)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -36,7 +39,7 @@ def main(argv=None) -> int:
     try:
         return args.fn(args)
     except (registry.RegistryError, lockfile.LockError,
-            store.StoreError) as exc:
+            store.StoreError, evals_mod.EvalError) as exc:
         print(f"promptlock: {exc}", file=sys.stderr)
         return 2
 
