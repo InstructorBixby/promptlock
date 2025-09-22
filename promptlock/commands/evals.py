@@ -1,31 +1,62 @@
-"""`promptlock eval record|list|check`."""
+"""`promptlock eval record|import|list|check`."""
 from __future__ import annotations
 
 import json
 import sys
 
 from promptlock import evals, project, staleness
+from promptlock.importers import promptfuzz
+
+IMPORTERS = {"promptfuzz": promptfuzz}
 
 
 def _log(proj: project.Project) -> evals.EvalLog:
     return evals.EvalLog(proj.store.root / "evals.jsonl")
 
 
+def _pin(proj: project.Project, pid: str):
+    pinned = proj.pinned()
+    if pid not in pinned:
+        print(f"promptlock: {pid} is not in the lockfile; run "
+              f"`promptlock lock` first", file=sys.stderr)
+        return None
+    return pinned[pid]
+
+
 def run_record(args) -> int:
     proj = project.Project.open(args.registry, args.lock)
-    pinned = proj.pinned()
-    if args.id not in pinned:
-        print(f"promptlock: {args.id} is not in the lockfile; run "
-              f"`promptlock lock` first", file=sys.stderr)
+    pin = _pin(proj, args.id)
+    if pin is None:
         return 2
-    metrics = json.loads(args.metrics) if args.metrics else {}
     rec = evals.Record(
-        prompt=args.id, prompt_hash=pinned[args.id].hash,
-        suite=args.suite, tool=args.tool or "", metrics=metrics,
+        prompt=args.id, prompt_hash=pin.hash, suite=args.suite,
+        tool=args.tool or "",
+        metrics=json.loads(args.metrics) if args.metrics else {},
         notes=args.notes or "")
     _log(proj).append(rec)
     print(f"recorded {args.suite} for {args.id} "
           f"@ {rec.prompt_hash[7:19]}")
+    return 0
+
+
+def run_import(args) -> int:
+    proj = project.Project.open(args.registry, args.lock)
+    pin = _pin(proj, args.id)
+    if pin is None:
+        return 2
+    mod = IMPORTERS[args.tool]
+    try:
+        rec = mod.read(args.path, prompt=args.id,
+                       prompt_hash=pin.hash, suite=args.suite,
+                       results=args.results)
+    except mod.ImportError_ as exc:
+        print(f"promptlock: {exc}", file=sys.stderr)
+        return 2
+    _log(proj).append(rec)
+    rate = rec.metrics.get("rate")
+    tail = "" if rate is None else f", rate={rate}"
+    print(f"imported {rec.suite} for {args.id} "
+          f"@ {rec.prompt_hash[7:19]}{tail}")
     return 0
 
 
@@ -76,6 +107,16 @@ def add_parser(sub) -> None:
     q.add_argument("--metrics", help="JSON object of measurements")
     q.add_argument("--notes", default="")
     q.set_defaults(fn=run_record)
+
+    q = esub.add_parser("import", help="import another tool's run")
+    q.add_argument("id")
+    q.add_argument("path", help="the run artefact, e.g. run.json")
+    q.add_argument("--tool", choices=sorted(IMPORTERS),
+                   default="promptfuzz")
+    q.add_argument("--suite", default=None)
+    q.add_argument("--results", default=None,
+                   help="result file, if it is not beside the artefact")
+    q.set_defaults(fn=run_import)
 
     q = esub.add_parser("list", help="list recorded results")
     q.add_argument("--json", action="store_true")
