@@ -2,6 +2,24 @@
 
 Keep a Changelog format, semver versions.
 
+## [0.4.0]
+
+### Added
+- Eval binding. `.promptlock/evals.jsonl` records
+  `(prompt, prompt_hash, suite, metrics, provenance)`, append-only,
+  because a result whose prompt has changed is not wrong, it is
+  about something else.
+- `promptlock eval record|list|check`. `check` reports a result as
+  *stale* when the prompt hash it was measured against is not the
+  hash pinned now, and exits 1.
+- `promptlock eval import` for a promptfuzz run: reads `run.json`
+  for seed, corpus hash, mutator and detector sets and versions,
+  counts hits from the jsonl beside it.
+
+### Notes
+- The importer will not infer a prompt id from an endpoint URL. A
+  wrong binding is worse than no binding.
+
 ## [0.3.0]
 
 ### Added
