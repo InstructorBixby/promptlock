@@ -1,42 +1,59 @@
 # Canonical form
 
-Scheme 1:
+## scheme 2
 
 | rule | claim it makes |
 |---|---|
 | decode UTF-8 strictly | a prompt that is not valid UTF-8 is a bug, not a prompt |
 | strip a leading BOM | a BOM is a transport artefact |
+| fold CRLF and lone CR to LF | line endings are transport, not content |
+| NFC normalise | canonically-equivalent sequences are the same text |
 | strip trailing spaces and tabs per line | invisible, almost never intended |
 | exactly one trailing newline | whether a file ends with a newline is an editor setting |
-| line endings left alone | *not* claimed to be equivalent -- see below |
-| no Unicode normalisation | *not* claimed to be equivalent -- see below |
 
-## the two I did not do
+## scheme 1, and why it changed
 
-**Line endings.** The obvious move is to fold CRLF to LF. I have not,
-because the prompt is a string handed to a tokenizer and the tokenizer
-sees the carriage returns; folding them asserts an equivalence I have
-not measured. The cost of this decision is that a repository checked out
-with CRLF translation produces different hashes, which is a real
-operational hazard -- set `* text eol=lf` in `.gitattributes` for the
-prompt directory and the hazard goes away.
+Scheme 1 deliberately did *not* fold line endings or normalise Unicode,
+on the grounds that both change codepoints and the tokenizer sees
+codepoints. The argument was sound and the decision was wrong, for a
+reason that has nothing to do with tokenizers.
 
-**Unicode normalisation.** NFC would make `e` + combining acute equal to
-the precomposed character, which is almost always what a human means.
-But a prompt that deliberately contains a decomposed sequence -- and
-prompts written to probe a model's text handling do -- would be
-rewritten under me. If this ever changes it will store the raw text and
-normalise only for comparison, never the other way round.
+I cloned `plays` on the Windows VM I keep for client documents, with
+line-ending translation on, and every prompt came out CRLF at
+checkout. Not edited -- checked out. `promptlock verify` reported
+drift on all of them, and I spent twenty minutes reading the hashing
+code before I thought to look at the file.
 
-Both decisions are reversible, and reversing either is a scheme bump: a
-lockfile records `canon_scheme`, and `promptlock verify` refuses to
-compare hashes across schemes rather than reporting drift that is really
-a tooling change.
+`.gitattributes` fixes it, and this repository has had one since the
+beginning, and that is not a defence: a gate whose correctness depends
+on every checkout being configured right is a gate that is wrong on
+the machine I am sitting at and right in the test suite. The rule has
+to hold with no cooperation, including mine.
 
-## what canonicalisation cannot fix
+Having conceded the principle for line endings I cannot keep it for
+Unicode either. Two sequences that are canonically equivalent render
+identically, no reviewer can tell them apart, and the one that is in the
+file depends on which operating system typed it. Folding both.
+
+What I give up: the ability to distinguish CRLF from LF, and precomposed
+from decomposed, at the level of the hash. For a prompt that is
+*deliberately* probing a model's text handling that distinction is the
+whole content of the prompt. The handling for that case is that the
+stored object keeps the raw text -- `diff` and the eval records show you
+exactly what was reviewed -- and the hash folds. See `docs/unicode.md`.
+
+## scheme bumps
+
+A lockfile records `canon_scheme`. `verify` refuses to compare hashes
+across schemes rather than reporting drift that is really a tooling
+change, and `promptlock migrate` rewrites a lockfile under the current
+scheme so the change is one reviewable commit.
+
+## what canonicalisation still cannot fix
 
 A trailing space at the very end of a prompt, immediately before the
 model's turn, is a real tokenisation decision in some chat templates and
-scheme 1 destroys it. I have not found a rule that keeps it without also
-keeping the three accidental kinds of trailing whitespace, so the
-compromise is that `lock` says out loud that it stripped something.
+every scheme so far destroys it. I have not found a rule that keeps it
+without also keeping the three accidental kinds of trailing whitespace,
+so the compromise is that `lock` says out loud that it stripped
+something.
