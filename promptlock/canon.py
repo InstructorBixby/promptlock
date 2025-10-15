@@ -6,24 +6,34 @@ number so that changing one is a dated, visible event: a hash computed
 under scheme 1 and a hash computed under scheme 2 are not comparable
 and the lockfile records which it used.
 
-Scheme 1:
+Scheme 2:
   - decode UTF-8 strictly, strip a leading BOM
+  - fold CRLF and lone CR to LF
+  - NFC normalise
   - strip trailing spaces and tabs from every line
   - exactly one trailing newline
-  - line endings are content, NOT normalised
-  - no Unicode normalisation
+
+Scheme 1 did not fold line endings and did not normalise. See
+docs/canon.md for why that did not survive contact with a Windows
+checkout.
 """
 from __future__ import annotations
 
 import hashlib
+import unicodedata
 
-SCHEME = 1
+SCHEME = 2
 BOM = "\ufeff"
 
 
+def _strip_bom(text: str) -> str:
+    return text[1:] if text.startswith(BOM) else text
+
+
 def canonical(text: str) -> str:
-    if text.startswith(BOM):
-        text = text[1:]
+    text = _strip_bom(text)
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = unicodedata.normalize("NFC", text)
     lines = [ln.rstrip(" \t") for ln in text.split("\n")]
     while lines and lines[-1] == "":
         lines.pop()
@@ -35,12 +45,19 @@ def lossy(text: str) -> list[str]:
     notes = []
     if text.startswith(BOM):
         notes.append("leading byte-order mark stripped")
-    body = text[1:] if text.startswith(BOM) else text
-    if any(ln != ln.rstrip(" \t") for ln in body.split("\n")[:-1]):
+    body = _strip_bom(text)
+    if "\r" in body:
+        notes.append("carriage returns folded to LF")
+    if unicodedata.normalize("NFC", body) != body:
+        notes.append(
+            "text is not in NFC; the hash folds the difference but the "
+            "stored object keeps the raw sequence (docs/unicode.md)")
+    flat = body.replace("\r\n", "\n").replace("\r", "\n")
+    if any(ln != ln.rstrip(" \t") for ln in flat.split("\n")[:-1]):
         notes.append("trailing whitespace stripped from one or more lines")
-    if body and not body.endswith("\n"):
+    if flat and not flat.endswith("\n"):
         notes.append("final newline added")
-    if body.endswith("\n\n"):
+    if flat.endswith("\n\n"):
         notes.append("repeated final newlines collapsed to one")
     return notes
 
