@@ -2,6 +2,30 @@
 
 Keep a Changelog format, semver versions.
 
+## [0.5.0]
+
+### Changed
+- **Canon scheme 2.** CRLF and lone CR fold to LF, and text is NFC
+  normalised. Scheme 1 deliberately did neither; a checkout with
+  line-ending translation on had every prompt rewritten at
+  checkout and `verify` reported drift on all of them. A gate
+  whose correctness depends on every checkout being configured
+  right is wrong on the machine I am sitting at and right in the
+  test suite. **Every hash changes.**
+- `verify` refuses to compare across schemes instead of reporting
+  drift, and `lock` refuses to overwrite an older-scheme lockfile.
+
+### Added
+- `promptlock migrate`, the only command that re-pins across a
+  scheme change, printing the old and new hash of every prompt.
+  `--dry-run` included.
+- `promptlock fmt`, which writes the canonical form back so the
+  file in the editor is the text being hashed. Whitespace, line
+  endings and the final newline only -- it will not rewrap or
+  reword anything.
+- `lock` now notes text that is not in NFC rather than folding it
+  silently.
+
 ## [0.4.0]
 
 ### Added
