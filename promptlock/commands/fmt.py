@@ -1,15 +1,17 @@
 """`promptlock fmt`: make the file agree with its own hash.
 
 The hash is over a canonical form, so a file with trailing whitespace
-in it hashes as though it did not have any. That is the intended
-behaviour and it is also mildly unpleasant: the thing in the editor is
-not the thing being hashed. `fmt` removes the gap by writing the
-canonical form back.
+in it hashes as though it did not have any. `fmt` removes that gap by
+writing back the parts of the canonical form that are unambiguously
+editor artefacts.
 
-Scoped deliberately narrowly. It touches whitespace, line endings and
-the final newline, and it will not reorder, rewrap or rewrite a single
-word. A formatter for prose is a formatter that silently edits a
-production instruction.
+It does NOT normalise Unicode, even though the hash does. See
+docs/unicode.md: a prompt can mean the exact sequence it contains, and
+a formatter that rewrites codepoints is a formatter that edits a
+production instruction without being asked.
+
+Scoped deliberately narrowly in the other direction too: it will not
+reorder, rewrap or reword a single thing.
 """
 from __future__ import annotations
 
@@ -21,15 +23,16 @@ def run(args) -> int:
     changed = []
     for entry in reg:
         text = reg.read(entry)
-        formatted = canon.canonical(text)
-        if formatted == text:
+        target = canon.formatted(text)
+        if not canon.is_nfc(text):
+            print(f"{entry.id}: not in NFC; leaving the sequence alone "
+                  f"(the hash folds it, this file does not)")
+        if target == text:
             continue
         changed.append(entry.id)
         if not args.check:
             (reg.root / entry.path).write_text(
-                formatted, encoding="utf-8", newline="\n")
-        for note in canon.lossy(text):
-            print(f"{entry.id}: {note}")
+                target, encoding="utf-8", newline="\n")
     if args.check:
         for pid in changed:
             print(f"would reformat {pid}")

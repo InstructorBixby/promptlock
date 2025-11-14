@@ -1,21 +1,28 @@
 """Canonical serialisation of prompt text.
 
-Everything in here is a claim that some textual difference does not
-change what a model is shown. The claims are versioned as a *scheme*
-number so that changing one is a dated, visible event: a hash computed
-under scheme 1 and a hash computed under scheme 2 are not comparable
-and the lockfile records which it used.
+Two operations, and keeping them apart is the point of this module.
+
+`canonical()` produces the form that gets *hashed*. It folds every
+difference this tool claims is not content, including Unicode
+normalisation. It is never written to disk.
+
+`formatted()` produces the form that gets *written* to disk by
+`promptlock fmt`. It folds only the differences that are
+unambiguously editor artefacts: whitespace, line endings, the BOM, the
+final newline. It does not normalise, because normalising a file is
+editing a production instruction.
+
+The claims are versioned as a *scheme* number so changing one is a
+dated, visible event: a hash computed under scheme 1 and a hash
+computed under scheme 2 are not comparable, and the lockfile records
+which it used.
 
 Scheme 2:
   - decode UTF-8 strictly, strip a leading BOM
   - fold CRLF and lone CR to LF
-  - NFC normalise
+  - NFC normalise (hash only)
   - strip trailing spaces and tabs from every line
   - exactly one trailing newline
-
-Scheme 1 did not fold line endings and did not normalise. See
-docs/canon.md for why that did not survive contact with a Windows
-checkout.
 """
 from __future__ import annotations
 
@@ -30,14 +37,28 @@ def _strip_bom(text: str) -> str:
     return text[1:] if text.startswith(BOM) else text
 
 
-def canonical(text: str) -> str:
+def _layout(text: str) -> str:
+    """Whitespace, line endings, final newline. No codepoint changes."""
     text = _strip_bom(text)
     text = text.replace("\r\n", "\n").replace("\r", "\n")
-    text = unicodedata.normalize("NFC", text)
     lines = [ln.rstrip(" \t") for ln in text.split("\n")]
     while lines and lines[-1] == "":
         lines.pop()
     return "\n".join(lines) + "\n"
+
+
+def formatted(text: str) -> str:
+    """Safe to write back over the author's file."""
+    return _layout(text)
+
+
+def canonical(text: str) -> str:
+    """Hashed, never written."""
+    return unicodedata.normalize("NFC", _layout(text))
+
+
+def is_nfc(text: str) -> bool:
+    return unicodedata.is_normalized("NFC", text)
 
 
 def lossy(text: str) -> list[str]:
@@ -48,10 +69,11 @@ def lossy(text: str) -> list[str]:
     body = _strip_bom(text)
     if "\r" in body:
         notes.append("carriage returns folded to LF")
-    if unicodedata.normalize("NFC", body) != body:
+    if not is_nfc(body):
         notes.append(
-            "text is not in NFC; the hash folds the difference but the "
-            "stored object keeps the raw sequence (docs/unicode.md)")
+            "text is not in NFC; the hash folds the difference, the "
+            "file and the stored object keep the raw sequence "
+            "(docs/unicode.md)")
     flat = body.replace("\r\n", "\n").replace("\r", "\n")
     if any(ln != ln.rstrip(" \t") for ln in flat.split("\n")[:-1]):
         notes.append("trailing whitespace stripped from one or more lines")
