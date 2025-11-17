@@ -42,3 +42,21 @@ def test_fmt_writes_lf(project):
     p.write_bytes(b"Classify.\r\n\r\n{{ticket}}\r\n")
     main(["fmt"])
     assert b"\r\n" not in p.read_bytes()
+
+
+def test_fmt_leaves_a_decomposed_sequence_alone(project, capsys):
+    # The probe prompt means the exact sequence it contains.
+    p = project / "prompts" / "triage.md"
+    text = "Classify cafe\u0301.\n\n{{ticket}}\n"
+    p.write_text(text, encoding="utf-8")
+    assert main(["fmt"]) == 0
+    assert p.read_text() == text
+    assert "not in NFC" in capsys.readouterr().out
+
+
+def test_fmt_fixes_layout_without_touching_the_sequence(project):
+    p = project / "prompts" / "triage.md"
+    p.write_text("Classify cafe\u0301.   \n\n{{ticket}}\n",
+                 encoding="utf-8")
+    main(["fmt"])
+    assert p.read_text() == "Classify cafe\u0301.\n\n{{ticket}}\n"
