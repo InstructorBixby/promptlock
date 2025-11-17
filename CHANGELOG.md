@@ -2,6 +2,22 @@
 
 Keep a Changelog format, semver versions.
 
+## [0.5.1]
+
+### Fixed
+- `promptlock fmt` wrote the *hashing* canonical form back to the
+  file, which includes NFC normalisation. A prompt that
+  deliberately contained a decomposed sequence -- a text-handling
+  probe, where the sequence was the content -- was silently
+  rewritten to the precomposed form. No hash moved, because the
+  hash folds exactly that difference, so nothing reported it. The
+  probe simply stopped testing what it was written to test.
+
+  `canon.canonical` (hashed, never written) and `canon.formatted`
+  (written, never normalises) are now separate. Normalise to
+  compare, store raw. `fmt` and `lock` both say so when the two
+  disagree. `docs/unicode.md` has the whole thing.
+
 ## [0.5.0]
 
 ### Changed
