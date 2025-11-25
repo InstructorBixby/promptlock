@@ -9,19 +9,45 @@ So the registry declares a source, a source resolves a key to text, and
 everything downstream -- canonicalisation, pinning, diffing, eval
 binding -- is unchanged. A source does one thing and must do it with no
 side effects: `get(key) -> str`.
+
+Out-of-tree sources register under the `promptlock.sources` entry-point
+group; see docs/sources.md.
 """
 from __future__ import annotations
 
-from promptlock.sources.base import Source, SourceError
-from promptlock.sources.files import FileSource
+from importlib.metadata import entry_points
 
-BUILTIN = {"file": FileSource}
+from promptlock.sources.base import MissingPrompt, Source, SourceError
+from promptlock.sources.files import FileSource
+from promptlock.sources.sqlite import SqliteSource
+
+BUILTIN = {"file": FileSource, "sqlite": SqliteSource}
+
+ENTRY_POINT_GROUP = "promptlock.sources"
+
+
+def discovered() -> dict:
+    out = dict(BUILTIN)
+    for ep in entry_points(group=ENTRY_POINT_GROUP):
+        if ep.name in BUILTIN:
+            # A plugin shadowing a builtin would change what a pin
+            # means depending on what is installed.
+            raise SourceError(
+                f"plugin {ep.value!r} would shadow the builtin source "
+                f"{ep.name!r}")
+        out[ep.name] = ep.load()
+    return out
 
 
 def build(kind: str, config: dict) -> Source:
-    if kind in BUILTIN:
-        return BUILTIN[kind](**config)
-    raise SourceError(f"unknown source kind {kind!r}")
+    table = discovered()
+    if kind not in table:
+        known = ", ".join(sorted(table))
+        raise SourceError(
+            f"unknown source kind {kind!r}; known: {known}")
+    return table[kind](**config)
 
 
-__all__ = ["Source", "SourceError", "FileSource", "BUILTIN", "build"]
+__all__ = ["Source", "SourceError", "MissingPrompt", "FileSource",
+           "SqliteSource", "BUILTIN", "ENTRY_POINT_GROUP",
+           "discovered", "build"]
