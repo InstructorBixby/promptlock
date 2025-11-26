@@ -31,7 +31,8 @@ class Project:
         for entry in self.registry:
             text = self.registry.read(entry)
             pins.append(lockfile.Pin(
-                id=entry.id, path=entry.path, hash=canon.digest(text),
+                id=entry.id, path=entry.locator,
+                hash=canon.digest(text),
                 owner=entry.owner, tuned_against=entry.tuned_against,
                 variables=tuple(entry.variables),
                 optional=tuple(entry.optional)))
@@ -51,3 +52,19 @@ class Project:
 
     def text_for(self, digest: str) -> str:
         return self.store.get(digest)
+
+    def unregistered(self) -> list[tuple[str, str]]:
+        """Keys a source can serve that no [prompt.*] table claims.
+
+        A prompt in production that nobody declared is the other half
+        of the drift problem and it is invisible from the registry
+        side. Only reported for sources that can enumerate.
+        """
+        claimed = {(e.source, e.key) for e in self.registry
+                   if e.source}
+        out = []
+        for name, src in sorted(self.registry.sources.items()):
+            for key in src.keys():
+                if (name, key) not in claimed:
+                    out.append((name, key))
+        return out
