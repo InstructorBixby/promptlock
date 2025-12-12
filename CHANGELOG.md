@@ -2,6 +2,27 @@
 
 Keep a Changelog format, semver versions.
 
+## [0.6.0]
+
+### Added
+- Pluggable sources. `[source.<name>]` in the registry, a prompt
+  references it with `source` + `key`, and everything downstream is
+  unchanged. Builtin kinds: `file`, `sqlite`.
+- The `sqlite` source takes an operator-written query with a `:key`
+  parameter rather than a table and column, opens the database
+  read-only, and treats two matching rows as an error instead of
+  picking one.
+- Out-of-tree sources via the `promptlock.sources` entry-point
+  group. A plugin may not shadow a builtin name.
+- `verify` reports `UNKNOWN` for a key a source serves that no
+  `[prompt.*]` table declares -- the half of drift that is
+  invisible from the registry side -- and `MOVED` when a prompt
+  changes location without changing text.
+
+### Changed
+- The lockfile's `path` field is now a locator: `prompts/a.md` for
+  a file, `db:support_triage` for a source.
+
 ## [0.5.1]
 
 ### Fixed
