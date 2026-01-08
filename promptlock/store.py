@@ -23,12 +23,18 @@ class StoreError(Exception):
 
 
 class Store:
-    def __init__(self, root: str | Path = ".promptlock"):
+    def __init__(self, root: str | Path = ".promptlock") -> None:
         self.root = Path(root)
 
     def _path(self, digest: str) -> Path:
         algo, _, hexd = digest.partition(":")
         if algo != "sha256" or len(hexd) != 64:
+            raise StoreError(f"not a digest: {digest!r}")
+        if not all(c in "0123456789abcdef" for c in hexd):
+            # A digest is the only thing that ever reaches this
+            # function, and a digest cannot contain a path separator.
+            # Checking anyway, because the lockfile is a file an
+            # attacker may control and this is where that would land.
             raise StoreError(f"not a digest: {digest!r}")
         return self.root / "objects" / algo / hexd[:2] / hexd[2:]
 
@@ -45,7 +51,7 @@ class Store:
                 raise StoreError(
                     f"{canon.short(digest)} is already stored with "
                     f"different raw bytes; canonically equal, literally "
-                    f"not. Use put(force=True) to replace it.")
+                    f"not. Use force_put to replace it.")
             return digest
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_bytes(raw)

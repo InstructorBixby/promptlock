@@ -11,11 +11,18 @@ from __future__ import annotations
 
 import hashlib
 import json
+from typing import TypedDict
 
 from promptlock import canon, template
 
 
-def variables_hash(values: dict) -> str:
+class Hashes(TypedDict):
+    template: str
+    variables: str
+    render: str
+
+
+def variables_hash(values: dict[str, object]) -> str:
     """Hash of the variable bindings, canonicalised per value.
 
     Keys sorted, values canonicalised with the same scheme as prompt
@@ -27,12 +34,12 @@ def variables_hash(values: dict) -> str:
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
-def render_hash(text: str, values: dict) -> str:
+def render_hash(text: str, values: dict[str, object]) -> str:
     """Hash of the text the model is actually handed."""
     return canon.digest(template.render(text, values))
 
 
-def hashes(text: str, values: dict) -> dict:
+def hashes(text: str, values: dict[str, object]) -> Hashes:
     """All three, for a provenance record."""
     return {
         "template": canon.digest(text),

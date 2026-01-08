@@ -52,6 +52,12 @@ def test_a_non_digest_is_rejected(tmp_path):
         s.has("deadbeef")
 
 
+def test_a_digest_shaped_path_traversal_is_rejected(tmp_path):
+    s = store.Store(tmp_path)
+    with pytest.raises(store.StoreError):
+        s.get("sha256:" + "../" * 21 + "etcpasswd")
+
+
 def test_has(tmp_path):
     s = store.Store(tmp_path)
     d = s.put("hi\n")
