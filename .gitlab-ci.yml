@@ -1,6 +1,7 @@
 # Runs on the docker runner registered on this box.
 stages:
   - test
+  - selfcheck
 
 test:
   stage: test
@@ -12,7 +13,8 @@ test:
     - pip install uv
     - uv pip install --system -e ".[dev]"
     - ruff check .
-    - pytest -q
+    - mypy
+    - pytest -q --cov=promptlock --cov-report=term-missing --cov-fail-under=90
 
 # This repository keeps its own example prompts in a registry, so the
 # gate can be run against itself.
