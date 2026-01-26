@@ -16,7 +16,7 @@ from promptlock.sources.base import MissingPrompt, Source, SourceError
 from promptlock.template import (MissingVariable, TemplateError,
                                  UnknownVariable, render, variables)
 
-__version__ = "0.6.0"
+__version__ = "0.7.0"
 
 __all__ = [
     "SCHEME",

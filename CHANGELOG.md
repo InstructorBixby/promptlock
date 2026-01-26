@@ -2,6 +2,33 @@
 
 Keep a Changelog format, semver versions.
 
+## [0.7.0]
+
+Packaging release. There are committed lockfiles in three other
+repositories of mine now, which means the parts I had been
+skipping because nothing depended on this matter more than the
+next feature does.
+
+### Added
+- Full packaging metadata: classifiers, keywords, project URLs,
+  a `docs` extra.
+- `py.typed` and a declared public API re-exported from
+  `promptlock`. Anything reached by importing a submodule directly
+  may move in a minor release.
+- `mypy --strict` over everything outside `promptlock.commands`,
+  and coverage with a floor, both in CI.
+- LICENSE (MIT), `docs/changing-this.md` and
+  `docs/failing-open.md`. The first is the list of changes I am
+  not allowed to make casually -- anything that moves a hash
+  heads that list -- and the second is how this gate can report
+  clean when it should not.
+- `docs/install.md`.
+
+### Fixed
+- The object store accepted a digest containing path separators.
+  Unreachable from any code path here, but the lockfile is a file
+  an attacker may control and that is exactly where it would land.
+
 ## [0.6.0]
 
 ### Added
