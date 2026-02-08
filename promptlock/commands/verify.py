@@ -3,10 +3,21 @@ from __future__ import annotations
 
 import sys
 
-from promptlock import canon, project
+from promptlock import canon, project, signing
 
 
 def run(args) -> int:
+    if args.signature_key:
+        try:
+            signing.verify(args.lock, key=args.signature_key,
+                           sig_path=args.signature)
+        except signing.SigningError as exc:
+            print(f"promptlock: lockfile signature: {exc}",
+                  file=sys.stderr)
+            return 1
+        print(f"lockfile signature verifies against "
+              f"{args.signature_key}")
+
     proj = project.Project.open(args.registry, args.lock)
     pinned = proj.pinned()
     current = {p.id: p for p in proj.current()}
@@ -50,4 +61,8 @@ def add_parser(sub) -> None:
     p.add_argument("--no-undeclared", action="store_true",
                    help="do not report prompts a source serves that "
                         "the registry does not declare")
+    p.add_argument("--signature-key", default=None, metavar="KEY",
+                   help="also verify the lockfile's cosign signature")
+    p.add_argument("--signature", default=None,
+                   help="signature path (default: <lockfile>.sig)")
     p.set_defaults(fn=run)

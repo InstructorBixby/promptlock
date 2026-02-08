@@ -3,7 +3,7 @@
 Exit codes, because the only interesting caller is CI:
 
   0  everything matched
-  1  drift, a failed check, or a stale eval binding
+  1  drift, a failed check, a bad signature, or a stale eval binding
   2  usage or configuration error
 """
 from __future__ import annotations
@@ -20,10 +20,11 @@ from promptlock.commands import hash as hash_cmd
 from promptlock.commands import lock as lock_cmd
 from promptlock.commands import migrate as migrate_cmd
 from promptlock.commands import render as render_cmd
+from promptlock.commands import sign as sign_cmd
 from promptlock.commands import verify as verify_cmd
 
 MODULES = (lock_cmd, verify_cmd, diff_cmd, render_cmd, evals_cmd,
-           fmt_cmd, migrate_cmd, hash_cmd)
+           fmt_cmd, migrate_cmd, sign_cmd, hash_cmd)
 
 
 def build_parser() -> argparse.ArgumentParser:
