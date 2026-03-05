@@ -2,6 +2,37 @@
 
 Keep a Changelog format, semver versions.
 
+## [1.0.0]
+
+No new mechanism. The lockfile format, the canon scheme and the
+exit codes have been unchanged for months, `plays` is parsing the
+JSON output, and semver only means anything if the numbers start
+making promises -- including to me, which is the only person they
+are being made to.
+
+### Added
+- `promptlock sign` and `verify --signature-key`: detached cosign
+  signature over the lockfile bytes, for the cases where the
+  lockfile travels without the repository. `docs/signing.md` is
+  explicit about what it does not prove.
+- `verify --format json`, built from the same objects the human
+  output is built from so the two cannot disagree.
+- `docs/ci.md`, including why `eval check` belongs on a schedule
+  and not on the merge-request job.
+
+### Stability
+- Public from here: the lockfile JSON shape and its
+  `lockfile_version`, the `canon_scheme` number and the rules
+  behind it, exit codes 0/1/2, the `[prompt.*]` and `[source.*]`
+  keys, the `promptlock.sources` entry-point interface, the
+  `verify --format json` field names, and the eval record fields.
+- Breaking any of those means 2.0. A canon scheme bump is a minor
+  release with a migration, not a major one -- the mechanism for
+  that is part of the promise.
+- A written deprecation policy: at least two minor releases of
+  notice, warnings on stderr only, and never a changed exit code
+  for a rename. `docs/stability.md` has the table.
+
 ## [0.7.0]
 
 Packaging release. There are committed lockfiles in three other
