@@ -21,10 +21,11 @@ from promptlock.commands import lock as lock_cmd
 from promptlock.commands import migrate as migrate_cmd
 from promptlock.commands import render as render_cmd
 from promptlock.commands import sign as sign_cmd
+from promptlock.commands import status as status_cmd
 from promptlock.commands import verify as verify_cmd
 
-MODULES = (lock_cmd, verify_cmd, diff_cmd, render_cmd, evals_cmd,
-           fmt_cmd, migrate_cmd, sign_cmd, hash_cmd)
+MODULES = (lock_cmd, verify_cmd, status_cmd, diff_cmd, render_cmd,
+           evals_cmd, fmt_cmd, migrate_cmd, sign_cmd, hash_cmd)
 
 
 def build_parser() -> argparse.ArgumentParser:
