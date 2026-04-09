@@ -10,8 +10,9 @@ docs/unicode.md: a prompt can mean the exact sequence it contains, and
 a formatter that rewrites codepoints is a formatter that edits a
 production instruction without being asked.
 
-Scoped deliberately narrowly in the other direction too: it will not
-reorder, rewrap or reword a single thing.
+It only touches prompts that are files. A source is a read-only
+interface by design and `fmt` is the only thing in here that writes, so
+source-backed prompts are skipped and said to be skipped.
 """
 from __future__ import annotations
 
@@ -20,8 +21,11 @@ from promptlock import canon, registry
 
 def run(args) -> int:
     reg = registry.load(args.registry)
-    changed = []
+    changed, skipped = [], []
     for entry in reg:
+        if entry.source:
+            skipped.append(entry.id)
+            continue
         text = reg.read(entry)
         target = canon.formatted(text)
         if not canon.is_nfc(text):
@@ -33,6 +37,8 @@ def run(args) -> int:
         if not args.check:
             (reg.root / entry.path).write_text(
                 target, encoding="utf-8", newline="\n")
+    for pid in skipped:
+        print(f"{pid}: skipped, not a file")
     if args.check:
         for pid in changed:
             print(f"would reformat {pid}")
