@@ -2,6 +2,22 @@
 
 Keep a Changelog format, semver versions.
 
+## [1.0.1]
+
+### Added
+- `promptlock status`: id, owner, model tuned against, pin, and
+  whether anything has measured it and whether that measurement is
+  still about this text. All of it already existed in four
+  different places.
+
+### Fixed
+- `promptlock fmt` on a source-backed prompt resolved its path
+  against the registry root, which for a prompt with no `path` is
+  the registry directory itself. It wrote the formatted text into a
+  file named after nothing. Sources are read-only by design and
+  `fmt` is the only thing here that writes, so source-backed
+  prompts are skipped and reported as skipped.
+
 ## [1.0.0]
 
 No new mechanism. The lockfile format, the canon scheme and the
