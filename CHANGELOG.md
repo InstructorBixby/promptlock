@@ -2,6 +2,19 @@
 
 Keep a Changelog format, semver versions.
 
+## [1.1.0]
+
+### Added
+- `promptlock verify --deployed URL`: compare the pins against the
+  hashes a running service reports, rather than against a git
+  checkout. The application exposes hashes and never has to show
+  its prompt text to the CI runner. `docs/deployed.md` has the four
+  lines of application code and the mistake to avoid -- reporting
+  the file instead of what the process loaded.
+- A deployment reporting a different `canon_scheme` exits 2 instead
+  of reporting every prompt as drifted.
+- `--header` and `--timeout` for that request.
+
 ## [1.0.1]
 
 ### Added
