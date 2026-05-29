@@ -1,8 +1,8 @@
 """Ties the registry, the lockfile and the store together.
 
-The CLI had grown three copies of "load the registry, hash everything,
-compare it to the lockfile". One place for it, so that `verify`,
-`diff` and the eval commands cannot disagree about what a pin means.
+One place for "load the registry, hash everything, compare it to the
+lockfile", so that `verify`, `diff` and the eval commands cannot
+disagree about what a pin means.
 """
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from promptlock import canon, lockfile, registry, store
+from promptlock.cache import HashCache
 
 
 @dataclass
@@ -17,25 +18,44 @@ class Project:
     registry: registry.Registry
     lock_path: Path
     store: store.Store
+    cache: HashCache | None = None
 
     @classmethod
     def open(cls, registry_path="promptlock.toml",
-             lock_path="promptlock.lock", store_root=None) -> "Project":
+             lock_path="promptlock.lock", store_root=None,
+             cache: bool = False) -> "Project":
         reg = registry.load(registry_path)
         root = Path(store_root) if store_root else reg.root / ".promptlock"
         return cls(registry=reg, lock_path=Path(lock_path),
-                   store=store.Store(root))
+                   store=store.Store(root),
+                   cache=HashCache(root / "cache" / "hashes.json",
+                                   enabled=cache))
+
+    def _digest(self, entry) -> tuple[str, str]:
+        """(digest, text). Text is "" when the cache answered."""
+        if entry.source or self.cache is None:
+            text = self.registry.read(entry)
+            return canon.digest(text), text
+        path = self.registry.root / entry.path
+        hit = self.cache.get(path)
+        if hit:
+            return hit, ""
+        text = self.registry.read(entry)
+        digest = canon.digest(text)
+        self.cache.put(path, digest)
+        return digest, text
 
     def current(self) -> list[lockfile.Pin]:
         pins = []
         for entry in self.registry:
-            text = self.registry.read(entry)
+            digest, _ = self._digest(entry)
             pins.append(lockfile.Pin(
-                id=entry.id, path=entry.locator,
-                hash=canon.digest(text),
+                id=entry.id, path=entry.locator, hash=digest,
                 owner=entry.owner, tuned_against=entry.tuned_against,
                 variables=tuple(entry.variables),
                 optional=tuple(entry.optional)))
+        if self.cache is not None:
+            self.cache.flush()
         return pins
 
     def pinned(self) -> dict:
