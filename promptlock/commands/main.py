@@ -32,6 +32,9 @@ def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="promptlock")
     ap.add_argument("--registry", default="promptlock.toml")
     ap.add_argument("--lock", default="promptlock.lock")
+    ap.add_argument("--cache", action="store_true",
+                   help="reuse hashes for files whose size and mtime "
+                        "have not changed. Ignored by verify.")
     sub = ap.add_subparsers(dest="cmd", required=True)
     for mod in MODULES:
         mod.add_parser(sub)

@@ -27,7 +27,8 @@ def run_lock(args) -> int:
               f"`promptlock migrate` -- a scheme bump changes every "
               f"hash and should be its own commit.", file=sys.stderr)
         return 2
-    proj = project.Project.open(args.registry, args.lock)
+    proj = project.Project.open(args.registry, args.lock,
+                                cache=args.cache)
     pins = proj.lock()
     for entry in proj.registry:
         for note in canon.lossy(proj.registry.read(entry)):
