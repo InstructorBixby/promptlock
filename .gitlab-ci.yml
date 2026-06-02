@@ -3,21 +3,50 @@ stages:
   - test
   - selfcheck
 
+cache:
+  key:
+    files:
+      - pyproject.toml
+      - constraints-dev.txt
+  paths:
+    - .cache/uv
+
+variables:
+  UV_CACHE_DIR: .cache/uv
+
 test:
   stage: test
   image: python:$PYVER
   parallel:
     matrix:
-      - PYVER: ["3.11", "3.12"]
+      - PYVER: ["3.11", "3.12", "3.13"]
+  script:
+    - pip install uv
+    - uv pip install --system -e ".[dev]" -c constraints-dev.txt
+    - ruff check .
+    - mypy
+    - pytest -q --cov=promptlock --cov-report=term-missing --cov-fail-under=90
+
+# GitLab CE has no dependency bot and I am not going to run one. A scheduled
+# pipeline that installs the dev tooling WITHOUT the constraints tells me
+# when an upstream release is going to cost me an afternoon, on a day I
+# chose rather than in the middle of something else.
+upstream:
+  stage: test
+  image: python:3.12
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
   script:
     - pip install uv
     - uv pip install --system -e ".[dev]"
     - ruff check .
     - mypy
-    - pytest -q --cov=promptlock --cov-report=term-missing --cov-fail-under=90
+    - pytest -q
+  allow_failure: true
 
 # This repository keeps its own example prompts in a registry, so the
-# gate can be run against itself.
+# gate can be run against itself. It has caught two regressions that
+# the unit tests did not.
 selfcheck:
   stage: selfcheck
   image: python:3.12
@@ -27,3 +56,4 @@ selfcheck:
     - promptlock verify
     - promptlock check
     - promptlock fmt --check
+    - promptlock status
