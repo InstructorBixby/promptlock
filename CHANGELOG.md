@@ -2,6 +2,24 @@
 
 Keep a Changelog format, semver versions.
 
+## [1.2.0]
+
+### Added
+- `--cache`: reuse a hash for a file whose size and mtime have not
+  changed. For an eleven-hundred-prompt monorepo with the gate on a
+  pre-commit hook, eight seconds was long enough that people were
+  starting to pass `--no-verify`, and a gate people skip is not a
+  gate. Ignored by `verify`, by anything involving a signature, and
+  by any prompt behind a source.
+- `docs/performance.md`, `docs/why-not-git.md`, `docs/faq.md`.
+- A CI job that runs the gate against this repository's own example
+  registry. It has caught two regressions the unit tests did not.
+
+### Changed
+- Dev dependencies pinned in `constraints-dev.txt` so a red build
+  means this repository changed.
+- Python 3.13 in the test matrix.
+
 ## [1.1.0]
 
 ### Added
