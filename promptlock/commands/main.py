@@ -15,6 +15,7 @@ from promptlock import evals as evals_mod
 from promptlock import lockfile, registry, store
 from promptlock.commands import diff as diff_cmd
 from promptlock.commands import evals as evals_cmd
+from promptlock.commands import export as export_cmd
 from promptlock.commands import fmt as fmt_cmd
 from promptlock.commands import hash as hash_cmd
 from promptlock.commands import lock as lock_cmd
@@ -25,7 +26,8 @@ from promptlock.commands import status as status_cmd
 from promptlock.commands import verify as verify_cmd
 
 MODULES = (lock_cmd, verify_cmd, status_cmd, diff_cmd, render_cmd,
-           evals_cmd, fmt_cmd, migrate_cmd, sign_cmd, hash_cmd)
+           evals_cmd, export_cmd, fmt_cmd, migrate_cmd, sign_cmd,
+           hash_cmd)
 
 
 def build_parser() -> argparse.ArgumentParser:
