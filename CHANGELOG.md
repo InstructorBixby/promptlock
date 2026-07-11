@@ -2,6 +2,18 @@
 
 Keep a Changelog format, semver versions.
 
+## [1.2.1]
+
+### Added
+- `promptlock export`: the prompt inventory a report appendix
+  needs -- id, owner, model tuned against, pinned hash, and which
+  suite produced which number against which hash. Markdown or
+  JSON. A result measured against a hash that is no longer pinned
+  is marked as such, because that mark is the difference between a
+  report that is true and one that was true.
+- `docs/reporting.md`, including why the prompt text does not go in
+  the appendix.
+
 ## [1.2.0]
 
 ### Added
