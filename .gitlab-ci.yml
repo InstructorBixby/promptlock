@@ -2,6 +2,7 @@
 stages:
   - test
   - selfcheck
+  - release
 
 cache:
   key:
@@ -57,3 +58,36 @@ selfcheck:
     - promptlock check
     - promptlock fmt --check
     - promptlock status
+
+# A tag builds the wheel. Nothing publishes it; the artefact is the
+# distribution channel and I am the distribution.
+release:
+  stage: release
+  image: python:3.12
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v/
+  script:
+    - pip install uv
+    # The tag and the packaged version have to agree, and the one time they
+    # did not I installed a wheel that called itself the previous release.
+    # Check before building, not after.
+    - |
+      tag="${CI_COMMIT_TAG#v}"
+      pkg=$(python -c "import tomllib;print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+      test "$tag" = "$pkg" || { echo "tag $tag != pyproject $pkg"; exit 1; }
+    - uv pip install --system -e ".[dev]"
+    - ruff check .
+    - mypy
+    - pytest -q
+    - uv pip install --system build
+    - python -m build
+    - |
+      {
+        echo "commit $CI_COMMIT_SHA"
+        echo "tag $CI_COMMIT_TAG"
+        sha256sum dist/*
+      } | tee dist/BUILDINFO
+  artifacts:
+    paths:
+      - dist/
+    expire_in: never
