@@ -45,6 +45,28 @@ upstream:
     - pytest -q
   allow_failure: true
 
+# The no-runtime-dependencies rule is a design constraint, and a design
+# constraint nothing checks is a preference. This fails the moment
+# `dependencies` in pyproject.toml stops being empty, which is the only way
+# I will notice myself adding one at four in the afternoon.
+no-runtime-deps:
+  stage: test
+  image: python:3.12
+  script:
+    - |
+      python - <<'PY'
+      import sys, tomllib
+      with open("pyproject.toml", "rb") as fh:
+          deps = tomllib.load(fh)["project"].get("dependencies") or []
+      if deps:
+          sys.exit(f"runtime dependencies appeared: {deps}")
+      PY
+    - pip install uv
+    - uv pip install --system .
+    # Installed with nothing else in the environment, it still has to run.
+    - promptlock --version
+    - promptlock verify
+
 # This repository keeps its own example prompts in a registry, so the
 # gate can be run against itself. It has caught two regressions that
 # the unit tests did not.
