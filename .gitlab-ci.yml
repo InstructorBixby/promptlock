@@ -3,6 +3,7 @@ stages:
   - test
   - selfcheck
   - release
+  - docs
 
 cache:
   key:
@@ -113,3 +114,18 @@ release:
     paths:
       - dist/
     expire_in: never
+
+pages:
+  stage: docs
+  image: python:3.12
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - pip install uv
+    - uv pip install --system -e ".[docs]"
+    # --strict so a renamed page breaks the build here rather than leaving a
+    # dead link in the nav for a month.
+    - mkdocs build --strict --site-dir public
+  artifacts:
+    paths:
+      - public
