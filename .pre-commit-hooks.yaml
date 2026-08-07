@@ -1,0 +1,29 @@
+# A drift gate is a pre-commit hook's natural shape, so declare it as
+# one here rather than writing the `repo: local` stanza again in every
+# repository of mine that wants it.
+#
+# `verify` is the gate and `fmt` rewrites files, so they are separate
+# hooks: a hook that both checks and edits is a hook people disable.
+- id: promptlock-verify
+  name: promptlock verify
+  description: fail if prompt text no longer matches its pinned hash
+  entry: promptlock verify
+  language: python
+  pass_filenames: false
+  files: '(^prompts/|promptlock\.(toml|lock)$)'
+
+- id: promptlock-check
+  name: promptlock check
+  description: declared variables and owners against the prompt text
+  entry: promptlock check
+  language: python
+  pass_filenames: false
+  files: '(^prompts/|promptlock\.toml$)'
+
+- id: promptlock-fmt
+  name: promptlock fmt
+  description: write the canonical form back (modifies files)
+  entry: promptlock fmt
+  language: python
+  pass_filenames: false
+  files: '(^prompts/|promptlock\.toml$)'
