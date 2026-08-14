@@ -2,6 +2,30 @@
 
 Keep a Changelog format, semver versions.
 
+## [1.3.0]
+
+Release engineering. No change to what the tool does.
+
+### Added
+- A `release` job: builds from a tag, refuses to build when the
+  tag and `pyproject.toml` disagree, reruns ruff, mypy and the
+  tests first, and keeps the wheel as an artefact that does not
+  expire. Nothing is published anywhere; the artefact is how a
+  build reaches the next machine.
+- A `BUILDINFO` next to each wheel: the commit, the tag and the
+  sha256 of every file. It is a lookup from a wheel back to a
+  commit, not an attestation -- I can edit both ends, and there
+  is nobody else here to prove anything to.
+- A job that fails if `dependencies` in `pyproject.toml` ever
+  stops being empty, and that installs the package alone and
+  runs it. A design constraint nothing checks is a preference.
+- `.pre-commit-hooks.yaml` with `promptlock-verify`,
+  `promptlock-check` and `promptlock-fmt`. `fmt` is a separate hook
+  because it modifies files.
+- A documentation site, built with `--strict` so a renamed page
+  fails the build instead of rotting in the nav.
+- `docs/supply-chain.md`, `docs/releasing.md`, `docs/pre-commit.md`.
+
 ## [1.2.1]
 
 ### Added
