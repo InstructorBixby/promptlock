@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+import promptlock
 from promptlock import canon, lockfile, registry, store
 from promptlock.cache import HashCache
 
@@ -48,9 +49,10 @@ class Project:
     def current(self) -> list[lockfile.Pin]:
         pins = []
         for entry in self.registry:
-            digest, _ = self._digest(entry)
+            digest, text = self._digest(entry)
             pins.append(lockfile.Pin(
-                id=entry.id, path=entry.locator, hash=digest,
+                id=entry.id, locator=entry.locator, hash=digest,
+                raw_sha256=lockfile.raw_digest(text) if text else "",
                 owner=entry.owner, tuned_against=entry.tuned_against,
                 variables=tuple(entry.variables),
                 optional=tuple(entry.optional)))
@@ -61,13 +63,20 @@ class Project:
     def pinned(self) -> dict:
         return {p.id: p for p in lockfile.read(self.lock_path)}
 
+    def lockfile_version(self) -> int | None:
+        if not self.lock_path.exists():
+            return None
+        return lockfile.version_of(
+            self.lock_path.read_text(encoding="utf-8"))
+
     def lock(self) -> list[lockfile.Pin]:
         pins = self.current()
         for entry in self.registry:
             text = self.registry.read(entry)
             if not self.store.has(canon.digest(text)):
                 self.store.put(text)
-        lockfile.write(self.lock_path, pins)
+        lockfile.write(self.lock_path, pins,
+                       generated_by=f"promptlock {promptlock.__version__}")
         return pins
 
     def text_for(self, digest: str) -> str:
