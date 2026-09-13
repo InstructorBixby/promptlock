@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 
+from promptlock import deprecations
+
 OK = "ok"
 DRIFT = "drift"
 UNPINNED = "unpinned"
@@ -24,8 +26,8 @@ class Item:
     state: str
     pinned_hash: str = ""
     found_hash: str = ""
-    pinned_path: str = ""
-    found_path: str = ""
+    pinned_locator: str = ""
+    found_locator: str = ""
     detail: str = ""
 
     @property
@@ -51,7 +53,11 @@ class Report:
                 for state in (OK, DRIFT, UNPINNED, MISSING, MOVED,
                               UNKNOWN)
             },
-            "items": [asdict(i) for i in self.items],
+            # pinned_path / found_path are emitted alongside the new
+            # names for the deprecation window; something out there is
+            # reading them.
+            "items": [deprecations.with_aliases(asdict(i))
+                      for i in self.items],
         }
 
     def lines(self, verbose: bool = False) -> list[str]:
