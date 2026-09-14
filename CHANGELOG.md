@@ -2,6 +2,37 @@
 
 Keep a Changelog format, semver versions.
 
+## [1.4.0]
+
+The lockfile is committed in four repositories of mine now, and
+in one case signed, so it stops being something I can change on a
+whim: moving a field means a migration across all of them on the
+same afternoon. It has a documented format, a version, and a
+reader that accepts every version that has ever been written.
+
+### Added
+- **Lockfile version 2.** `path` is now `locator`, and
+  `raw_sha256` and `generated_by` are new. `path` had been
+  carrying `db:support_triage` since sources existed, which is not
+  a path.
+- A v1 lockfile still reads, and always will: `path` maps onto
+  `locator` and nothing is lost. `lock` writes v2 and prints one
+  note saying it upgraded and that no hash changed.
+- `raw_sha256`: sha256 over the exact bytes, next to the canonical
+  hash, so a reviewer can tell the-same-prompt from
+  the-same-prompt-retyped-on-another-operating-system.
+- `docs/lockfile.md`: the format, the fields, the versions, and
+  what anything reading it has to tolerate.
+
+### Deprecated
+- `verify --no-undeclared` is now `--skip-undeclared`. The old
+  spelling works, warns on stderr, does not change the exit code,
+  and is removed in 2.0.
+- The `pinned_path` and `found_path` fields in
+  `verify --format json` are now `pinned_locator` and
+  `found_locator`. Both names are emitted until 2.0.
+- `Pin.path` is an alias for `Pin.locator` until 2.0.
+
 ## [1.3.0]
 
 Release engineering. No change to what the tool does.
