@@ -1,10 +1,12 @@
 """`promptlock verify`: the drift gate."""
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 
-from promptlock import canon, deployed, project, report, signing
+from promptlock import (canon, deployed, deprecations, project, report,
+                        signing)
 
 
 def build_report(proj: project.Project, *,
@@ -19,7 +21,7 @@ def build_report(proj: project.Project, *,
     """
     pinned = proj.pinned()
     if live is None:
-        found = {p.id: (p.hash, p.path) for p in proj.current()}
+        found = {p.id: (p.hash, p.locator) for p in proj.current()}
     else:
         found = {pid: (h, "deployed") for pid, h in live.items()}
     rep = report.Report()
@@ -30,34 +32,34 @@ def build_report(proj: project.Project, *,
         if want is None:
             rep.items.append(report.Item(
                 pid, report.UNPINNED, found_hash=have[0],
-                found_path=have[1],
+                found_locator=have[1],
                 detail="running, not in the lockfile" if live
                        else "in the registry, not in the lockfile"))
         elif have is None:
             rep.items.append(report.Item(
                 pid, report.MISSING, pinned_hash=want.hash,
-                pinned_path=want.path,
+                pinned_locator=want.locator,
                 detail="pinned, not reported by the deployment" if live
                        else "pinned, not in the registry"))
         elif want.hash != have[0]:
             rep.items.append(report.Item(
                 pid, report.DRIFT, pinned_hash=want.hash,
-                found_hash=have[0], pinned_path=want.path,
-                found_path=have[1],
+                found_hash=have[0], pinned_locator=want.locator,
+                found_locator=have[1],
                 detail=f"pinned {canon.short(want.hash)}, found "
                        f"{canon.short(have[0])}"))
-        elif want.path != have[1] and live is None:
+        elif want.locator != have[1] and live is None:
             rep.items.append(report.Item(
                 pid, report.MOVED, pinned_hash=want.hash,
-                found_hash=have[0], pinned_path=want.path,
-                found_path=have[1],
-                detail=f"pinned at {want.path}, now at {have[1]} "
+                found_hash=have[0], pinned_locator=want.locator,
+                found_locator=have[1],
+                detail=f"pinned at {want.locator}, now at {have[1]} "
                        f"(same text)"))
         else:
             rep.items.append(report.Item(
                 pid, report.OK, pinned_hash=want.hash,
-                found_hash=have[0], pinned_path=want.path,
-                found_path=have[1], detail=canon.short(have[0])))
+                found_hash=have[0], pinned_locator=want.locator,
+                found_locator=have[1], detail=canon.short(have[0])))
 
     if undeclared and live is None:
         for source, key in proj.unregistered():
@@ -69,6 +71,11 @@ def build_report(proj: project.Project, *,
 
 
 def run(args) -> int:
+    skip_undeclared = args.skip_undeclared
+    if args.no_undeclared:
+        deprecations.warn_flag("--no-undeclared")
+        skip_undeclared = True
+
     sig_state = ""
     if args.signature_key:
         try:
@@ -107,8 +114,7 @@ def run(args) -> int:
         live = doc["prompts"]
 
     proj = project.Project.open(args.registry, args.lock)
-    rep = build_report(proj, undeclared=not args.no_undeclared,
-                       live=live)
+    rep = build_report(proj, undeclared=not skip_undeclared, live=live)
     rep.signature = sig_state
 
     if args.format == "json":
@@ -139,9 +145,12 @@ def add_parser(sub) -> None:
                         "service reports")
     p.add_argument("--header", action="append", metavar="K: V")
     p.add_argument("--timeout", type=float, default=10.0)
-    p.add_argument("--no-undeclared", action="store_true",
+    p.add_argument("--skip-undeclared", action="store_true",
                    help="do not report prompts a source serves that "
                         "the registry does not declare")
+    # Deprecated spelling, hidden from --help but still honoured.
+    p.add_argument("--no-undeclared", action="store_true",
+                   help=argparse.SUPPRESS)
     p.add_argument("--signature-key", default=None, metavar="KEY",
                    help="also verify the lockfile's cosign signature")
     p.add_argument("--signature", default=None,
