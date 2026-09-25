@@ -8,14 +8,15 @@ command that reads like an answer.
 from __future__ import annotations
 
 import json
+import sys
 
-from promptlock import evals, project, staleness
+from promptlock import evals, lockfile, project, staleness
 
 
 def rows(proj: project.Project) -> list[dict]:
     try:
         pinned = proj.pinned()
-    except Exception:
+    except lockfile.LockError:
         pinned = {}
     log = evals.EvalLog(proj.store.root / "evals.jsonl")
     latest = log.latest()
@@ -46,12 +47,18 @@ def rows(proj: project.Project) -> list[dict]:
 
 def run(args) -> int:
     proj = project.Project.open(args.registry, args.lock)
+    version = proj.lockfile_version()
+    if version is not None and version != lockfile.CURRENT_VERSION:
+        print(f"note: lockfile is version {version}; `promptlock lock` "
+              f"will write version {lockfile.CURRENT_VERSION}",
+              file=sys.stderr)
     data = rows(proj)
     if args.json:
         print(json.dumps(data, indent=1))
         return 0
     width = max([len(r["id"]) for r in data] + [2])
-    print(f"{'id':{width}}  {'owner':12} {'pinned':12} {'tuned against':22} results")
+    print(f"{'id':{width}}  {'owner':12} {'pinned':12} "
+          f"{'tuned against':22} results")
     for r in data:
         print(f"{r['id']:{width}}  {r['owner']:12} {r['pinned']:12} "
               f"{r['tuned_against']:22} {r['results']}")

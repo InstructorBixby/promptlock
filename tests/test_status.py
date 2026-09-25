@@ -44,3 +44,21 @@ def test_status_names_unowned_prompts(project, capsys):
         'variables = ["ticket"]\n', encoding="utf-8")
     main(["status"])
     assert "no owner: triage" in capsys.readouterr().out
+
+
+def test_the_old_lockfile_note_is_not_in_the_json(project, capsys):
+    """A note on stdout breaks `status --json | jq`, which is exactly
+    what the deprecation policy says must not happen."""
+    main(["lock"])
+    p = project / "promptlock.lock"
+    doc = json.loads(p.read_text())
+    doc["lockfile_version"] = 1
+    for row in doc["prompts"]:
+        row["path"] = row.pop("locator")
+        row.pop("raw_sha256", None)
+    p.write_text(json.dumps(doc, indent=1, sort_keys=True) + "\n")
+
+    assert main(["status", "--json"]) == 0
+    out = capsys.readouterr()
+    assert "lockfile is version 1" in out.err
+    json.loads(out.out)
