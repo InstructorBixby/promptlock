@@ -2,6 +2,19 @@
 
 Keep a Changelog format, semver versions.
 
+## [1.4.1]
+
+### Fixed
+- `promptlock status` printed the lockfile-version note on stdout,
+  which put a line of English in front of the JSON document that
+  `--json` is for. Found when the `plays` wrapper's
+  `status --json | jq` started failing right after I upgraded it.
+  The deprecation policy says
+  warnings go to stderr and never to stdout; this was the first
+  thing to break it.
+- `status` caught a bare `Exception` when reading the lockfile,
+  which hid a real parse error behind an empty table.
+
 ## [1.4.0]
 
 The lockfile is committed in four repositories of mine now, and
